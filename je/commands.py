@@ -15,6 +15,9 @@
 ############
 
 import argparse
+import json
+import os
+
 import datetime
 import sys
 
@@ -29,6 +32,7 @@ from je.cache import cache
 from je.configuration import configuration
 from je.completion import completion
 from je.work import work
+from je.jit import cross_ref
 
 
 app = argh.EntryPoint('je')
@@ -39,17 +43,20 @@ command = app
 @arg('--jenkins-username', required=True)
 @arg('--jenkins-password', required=True)
 @arg('--jenkins-base-url', required=True)
+@arg('--repos-root-dir', required=False)
 def init(jenkins_username=None,
          jenkins_password=None,
          jenkins_base_url=None,
          jenkins_system_tests_base=None,
          workdir=None,
+         repos_root_dir=None,
          reset=False):
     configuration.save(jenkins_username=jenkins_username,
                        jenkins_password=jenkins_password,
                        jenkins_base_url=jenkins_base_url,
                        jenkins_system_tests_base=jenkins_system_tests_base,
                        workdir=workdir,
+                       repos_root_dir=repos_root_dir,
                        reset=reset)
     work.init()
     cache.clear()
@@ -331,6 +338,26 @@ def clear(force=False):
 @command
 def workdir():
     return configuration.workdir
+
+
+@command
+@arg('-since')
+@arg('--stdout')
+@arg('job', completer=completion.job_completer)
+@arg('build', completer=completion.build_completer)
+def cross(job, build, since=None, to_file='', stdout=True):
+    result = cross_ref(job, build, configuration.repos_root_dir, since)
+    json_result = json.dumps(result, separators=(',', ':'), indent=4)
+    if stdout:
+        print json_result
+    if to_file:
+        if not os.path.isabs(to_file):
+            to_file = os.path.join(os.getcwd(), to_file)
+        if not os.path.exists(os.path.dirname(to_file)):
+            os.mkdir(os.path.dirname(to_file))
+
+        with open(os.path.join(os.getcwd(), to_file), 'a') as f:
+            f.write(json_result)
 
 
 def _extract_build_parameters(build):

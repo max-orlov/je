@@ -28,6 +28,7 @@ class Configuration(object):
              jenkins_base_url,
              jenkins_system_tests_base,
              workdir,
+             repos_root_dir,
              reset):
         if not self.conf_dir.exists():
             self.conf_dir.mkdir()
@@ -39,6 +40,8 @@ class Configuration(object):
             jenkins_base_url = jenkins_base_url[:-1]
         if not jenkins_system_tests_base:
             jenkins_system_tests_base = 'view/core_tests/job/dir_system-tests'
+        if not repos_root_dir:
+            repos_root_dir = '~/dev/repos'
         workdir = workdir or self.conf_dir / 'work'
         workdir = path(workdir).expanduser().abspath()
         conf.write_text(yaml.safe_dump({
@@ -46,7 +49,8 @@ class Configuration(object):
             'jenkins_password': jenkins_password,
             'jenkins_base_url': jenkins_base_url,
             'jenkins_system_tests_base': jenkins_system_tests_base,
-            'workdir': str(workdir)
+            'workdir': str(workdir),
+            'repos_root_dir': repos_root_dir
         }, default_flow_style=False))
 
     @property
@@ -75,6 +79,10 @@ class Configuration(object):
     @property
     def jenkins_system_tests_base(self):
         return self.conf.get('jenkins_system_tests_base')
+
+    @property
+    def repos_root_dir(self):
+        return self.conf.get('repos_root_dir')
 
     @property
     def workdir(self):

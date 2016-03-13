@@ -16,7 +16,6 @@
 
 import argparse
 import json
-import os
 
 import datetime
 import sys
@@ -100,7 +99,12 @@ def ls(job):
 @arg('builds',
      completer=completion.build_completer,
      nargs=argparse.ONE_OR_MORE)
-def report(job, builds, failed=False):
+@arg('--cross', required=False)
+@arg('--since', required=False)
+def report(job, builds,
+           failed=False,
+           cross=False,
+           since=None):
     builds = _fetch_builds(job, builds)
     num_builds = len(builds)
     for index, (build_number, build) in enumerate(builds):
@@ -109,6 +113,13 @@ def report(job, builds, failed=False):
         _build_report(job, build, build_number, failed)
         if index < num_builds - 1:
             print
+        print
+        if cross:
+            cross_result = cross_ref(job,
+                                     build_number,
+                                     configuration.repos_root_dir,
+                                     since)
+            print json.dumps(cross_result, separators=(',', ':'), indent=4)
 
 
 def _build_report(job, build, build_number, failed):
@@ -338,26 +349,6 @@ def clear(force=False):
 @command
 def workdir():
     return configuration.workdir
-
-
-@command
-@arg('-since')
-@arg('--stdout')
-@arg('job', completer=completion.job_completer)
-@arg('build', completer=completion.build_completer)
-def cross(job, build, since=None, to_file='', stdout=True):
-    result = cross_ref(job, build, configuration.repos_root_dir, since)
-    json_result = json.dumps(result, separators=(',', ':'), indent=4)
-    if stdout:
-        print json_result
-    if to_file:
-        if not os.path.isabs(to_file):
-            to_file = os.path.join(os.getcwd(), to_file)
-        if not os.path.exists(os.path.dirname(to_file)):
-            os.mkdir(os.path.dirname(to_file))
-
-        with open(os.path.join(os.getcwd(), to_file), 'a') as f:
-            f.write(json_result)
 
 
 def _extract_build_parameters(build):
